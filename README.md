@@ -24,10 +24,10 @@ built as a client preview. Static HTML/CSS/JS — no build step, deploys instant
 - Buy / Sell pill with sliding fill + recoloured CTA
 - Market / Limit / Adv. tabs with sliding underline
 - Live amount → QNT estimate, quick-amount presets
+- **Live TradingView chart** embedded and themed to the palette (mint candles, terracotta downs, near-black canvas, chrome hidden) with an animated skeleton until it paints
 - **Draggable** trades window (pointer events) + minimise
 - Dock hover-magnify with keyboard-hint tooltips
-- Procedural candlesticks that draw in on load, animated volume histogram
-- Subtle live price flag, ambient mint glow, grain overlay
+- Animated volume histogram footer, ambient mint glow, grain overlay
 - Fully `prefers-reduced-motion` aware
 
 ## Run locally

@@ -1,129 +1,113 @@
 /* ============================================================
-   QNT / Quantumium — interactions + procedural chart
+   QNT / Quantumium — interactions + live TradingView chart
    ============================================================ */
 (() => {
   "use strict";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const SVGNS = "http://www.w3.org/2000/svg";
-  const el = (n, a = {}) => {
-    const e = document.createElementNS(SVGNS, n);
-    for (const k in a) e.setAttribute(k, a[k]);
-    return e;
-  };
 
-  /* deterministic pseudo-random so the chart is stable */
+  /* deterministic pseudo-random so the footer histogram is stable */
   let seed = 8675309;
   const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
 
-  const BUY = css("--buy"), SELL = css("--sell"), MINT = css("--accent-mint");
+  /* ============================================================
+     Live TradingView chart — themed to the Quantumium palette
+     (mint candles, terracotta downs, near-black canvas, no chrome)
+     ============================================================ */
+  function initTradingView() {
+    const host = $("#tvchart");
+    const skel = $("#chartSkeleton");
+    if (!host) return;
 
-  /* ----- candlestick generator ----- */
-  const N = 72;
-  const candles = [];
-  let price = 40;
-  for (let i = 0; i < N; i++) {
-    const drift = Math.sin(i / 9) * 0.6 + (i / N) * 4.2;
-    const o = price;
-    const c = o + (rnd() - 0.45) * 1.6 + drift * 0.08;
-    const hi = Math.max(o, c) + rnd() * 0.9;
-    const lo = Math.min(o, c) - rnd() * 0.9;
-    candles.push({ o, c, hi, lo, up: c >= o, vol: 0.3 + rnd() });
-    price = c;
-  }
-  const lows = Math.min(...candles.map((d) => d.lo));
-  const highs = Math.max(...candles.map((d) => d.hi));
-  const pad = (highs - lows) * 0.08;
-  const min = lows - pad, max = highs + pad;
+    const overrides = {
+      "paneProperties.background": "#050607",
+      "paneProperties.backgroundType": "solid",
+      "paneProperties.vertGridProperties.color": "rgba(255,255,255,0.025)",
+      "paneProperties.horzGridProperties.color": "rgba(255,255,255,0.025)",
+      "paneProperties.crossHairProperties.color": "rgba(232,234,233,0.22)",
+      "scalesProperties.lineColor": "rgba(255,255,255,0.05)",
+      "scalesProperties.textColor": "rgba(232,234,233,0.5)",
+      "scalesProperties.fontSize": 11,
+      "mainSeriesProperties.candleStyle.upColor": "#7fd9b5",
+      "mainSeriesProperties.candleStyle.downColor": "#e27d6e",
+      "mainSeriesProperties.candleStyle.borderUpColor": "#7fd9b5",
+      "mainSeriesProperties.candleStyle.borderDownColor": "#e27d6e",
+      "mainSeriesProperties.candleStyle.wickUpColor": "#9fe9cf",
+      "mainSeriesProperties.candleStyle.wickDownColor": "#ec9a8d",
+      "mainSeriesProperties.showPriceLine": true,
+      "mainSeriesProperties.priceLineColor": "#7fd9b5",
+      "paneProperties.legendProperties.showLegend": false,
+      "paneProperties.legendProperties.showStudyTitles": false
+    };
 
-  function buildChart() {
-    const svg = $("#chart");
-    const W = 1000, H = 330;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.innerHTML = "";
-    const plotW = W - 46;
-    const y = (v) => H - ((v - min) / (max - min)) * H;
-    const step = plotW / N;
-    const cw = step * 0.62;
+    const studiesOverrides = {
+      "volume.volume.color.0": "rgba(226,125,110,0.4)",
+      "volume.volume.color.1": "rgba(127,217,181,0.4)",
+      "volume.volume.transparency": 62
+    };
 
-    /* gridlines + axis labels */
-    const grid = el("g");
-    for (let g = 0; g <= 6; g++) {
-      const yy = (H / 6) * g;
-      grid.appendChild(el("line", { x1: 0, x2: plotW, y1: yy, y2: yy, stroke: "rgba(255,255,255,.035)", "stroke-dasharray": "2 6" }));
-      const val = max - ((max - min) / 6) * g;
-      const t = el("text", { x: plotW + 8, y: yy + 3, fill: "rgba(255,255,255,.28)", "font-size": 10, "font-family": "var(--font-mono)" });
-      t.textContent = Math.round(val) + "K";
-      grid.appendChild(t);
-    }
-    svg.appendChild(grid);
+    const config = {
+      symbol: "BINANCE:SOLUSDT",
+      interval: "5",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      timezone: "Etc/UTC",
+      backgroundColor: "#050607",
+      gridColor: "rgba(255,255,255,0.025)",
+      hide_top_toolbar: true,
+      hide_side_toolbar: true,
+      hide_legend: true,
+      allow_symbol_change: false,
+      save_image: false,
+      withdateranges: false,
+      studies: []
+    };
 
-    /* candles (draw-in via stroke trick on wicks + scale on bodies) */
-    candles.forEach((d, i) => {
-      const x = i * step + step / 2;
-      const col = d.up ? BUY : SELL;
-      const wick = el("line", { x1: x, x2: x, y1: y(d.hi), y2: y(d.lo), stroke: col, "stroke-width": 1, opacity: 0 });
-      svg.appendChild(wick);
-      const top = y(Math.max(d.o, d.c)), bot = y(Math.min(d.o, d.c));
-      const body = el("rect", {
-        x: x - cw / 2, y: top, width: cw, height: Math.max(1.4, bot - top),
-        fill: col, rx: 0.8, opacity: 0,
-        style: "transform-box:fill-box;transform-origin:center bottom;transform:scaleY(0)"
-      });
-      svg.appendChild(body);
-      const dl = 0.5 + i * 0.011;
-      wick.animate([{ opacity: 0 }, { opacity: 0.85 }], { duration: 280, delay: dl * 1000, fill: "forwards", easing: "ease-out" });
-      body.animate(
-        [{ transform: "scaleY(0)", opacity: 0 }, { transform: "scaleY(1)", opacity: 1 }],
-        { duration: 360, delay: dl * 1000, fill: "forwards", easing: "cubic-bezier(.22,1,.36,1)" }
-      );
+    const disabled = [
+      "header_widget", "left_toolbar", "border_around_the_chart",
+      "control_bar", "timeframes_toolbar", "legend_widget", "symbol_info"
+    ];
+
+    const q = new URLSearchParams({
+      hideideas: "1",
+      overrides: JSON.stringify(overrides),
+      studies_overrides: JSON.stringify(studiesOverrides),
+      enabled_features: "[]",
+      disabled_features: JSON.stringify(disabled),
+      locale: "en"
     });
 
-    /* live price line */
-    const last = candles[candles.length - 1];
-    const ly = y(last.c);
-    svg.appendChild(el("line", { x1: 0, x2: plotW, y1: ly, y2: ly, stroke: MINT, "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.55 }));
-    return { y, plotW, last };
+    const iframe = document.createElement("iframe");
+    iframe.title = "QNT / SOL live chart";
+    iframe.setAttribute("scrolling", "no");
+    iframe.setAttribute("allowtransparency", "true");
+    iframe.setAttribute("frameborder", "0");
+    iframe.src =
+      "https://s.tradingview.com/widgetembed/?" + q.toString() +
+      "#" + encodeURIComponent(JSON.stringify(config));
+
+    const reveal = () => {
+      if (host.classList.contains("ready")) return;
+      host.classList.add("ready");
+      if (skel) skel.classList.add("hide");
+    };
+    iframe.addEventListener("load", () => setTimeout(reveal, 350));
+    setTimeout(reveal, 2800); // safety if onload is delayed
+    host.appendChild(iframe);
   }
 
-  function buildVolume() {
-    const svg = $("#vol");
-    const W = 1000, H = 56;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.innerHTML = "";
-    const plotW = W - 46, step = plotW / N, cw = step * 0.62;
-    const vmax = Math.max(...candles.map((d) => d.vol));
-    candles.forEach((d, i) => {
-      const x = i * step + step / 2;
-      const h = (d.vol / vmax) * (H - 8);
-      const r = el("rect", {
-        x: x - cw / 2, y: H - h, width: cw, height: h, rx: 0.8,
-        fill: d.up ? BUY : SELL, opacity: 0.28,
-        style: "transform-box:fill-box;transform-origin:center bottom;transform:scaleY(0)"
-      });
-      svg.appendChild(r);
-      r.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 420, delay: 600 + i * 9, fill: "forwards", easing: "cubic-bezier(.22,1,.36,1)" });
-    });
-  }
-
-  function placePriceFlag(ctx) {
-    const wrap = $(".bg-chart");
-    if (!wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const frac = ctx.y(ctx.last.c) / 330;
-    $("#priceFlag").style.top = rect.top + rect.height * frac + "px";
-  }
-
-  /* footer volume histogram */
+  /* ============================================================
+     Footer volume histogram (decorative, very thin)
+     ============================================================ */
   function buildFooter() {
     const foot = $("#foot");
+    if (!foot) return;
     foot.innerHTML = "";
     for (let i = 0; i < 90; i++) {
       const b = document.createElement("div");
       b.className = "vbar";
-      const h = 6 + rnd() * 30;
-      b.style.height = h + "px";
+      b.style.height = 6 + rnd() * 30 + "px";
       b.style.animationDelay = 0.4 + i * 0.008 + "s";
       if (rnd() > 0.6) b.style.background = rnd() > 0.5 ? "rgba(127,217,181,.3)" : "rgba(226,125,110,.28)";
       foot.appendChild(b);
@@ -140,8 +124,7 @@
 
   /* ----- bottom tabs ----- */
   function initTabs() {
-    const tabs = $("#tabs");
-    const ind = $("#tabInd");
+    const tabs = $("#tabs"), ind = $("#tabInd");
     const btns = $$(".t", tabs);
     const set = (b) => { btns.forEach((x) => x.classList.toggle("on", x === b)); slide(ind, b, tabs); };
     btns.forEach((b) => b.addEventListener("click", () => set(b)));
@@ -151,8 +134,7 @@
 
   /* ----- order modes ----- */
   function initModes() {
-    const modes = $("#modes");
-    const ind = $("#modeInd");
+    const modes = $("#modes"), ind = $("#modeInd");
     const btns = $$("button:not(.gear)", modes);
     const set = (b) => { btns.forEach((x) => x.classList.toggle("on", x === b)); slide(ind, b, modes); };
     btns.forEach((b) => b.addEventListener("click", () => set(b)));
@@ -162,16 +144,13 @@
 
   /* ----- buy / sell toggle ----- */
   function initBuySell() {
-    const bs = $("#bs");
-    const cta = $("#cta");
-    const label = $("#ctaLabel");
-    const chg = $("#chg");
+    const bs = $("#bs"), cta = $("#cta"), label = $("#ctaLabel");
     $$("button", bs).forEach((b) =>
       b.addEventListener("click", () => {
         const side = b.dataset.s;
         bs.dataset.side = side;
         $$("button", bs).forEach((x) => x.classList.toggle("on", x === b));
-        label.textContent = (side === "buy" ? "Buy" : "Sell") + " QNT";
+        label.textContent = (side === "buy" ? "Buy" : "Sell") + " QNT";
         const mint = "linear-gradient(180deg, var(--accent-mint), var(--accent-mint-strong))";
         const sell = "linear-gradient(180deg, #e89384, var(--sell))";
         cta.style.background = side === "buy" ? mint : sell;
@@ -185,13 +164,11 @@
   const PRICE_PER_SOL = 23240; // QNT per SOL (mock)
   function recalc() {
     const sol = parseFloat($("#amtInput").value) || 0;
-    const tok = Math.round(sol * PRICE_PER_SOL).toLocaleString("en-US");
-    $("#estTok").textContent = "≈ " + tok + " QNT";
+    $("#estTok").textContent = "≈ " + Math.round(sol * PRICE_PER_SOL).toLocaleString("en-US") + " QNT";
     $("#estUsd").textContent = "$" + (sol * 43).toFixed(2);
   }
   function initAmount() {
-    const input = $("#amtInput");
-    const presets = $("#presets");
+    const input = $("#amtInput"), presets = $("#presets");
     input.addEventListener("input", () => {
       recalc();
       $$("button", presets).forEach((p) => p.classList.toggle("on", p.dataset.v === parseFloat(input.value || 0).toFixed(3)));
@@ -208,17 +185,11 @@
 
   /* ----- draggable trades window ----- */
   function initTrades() {
-    const win = $("#trades");
-    const head = $("#tradesHead");
-    const body = $("#tradesBody");
+    const win = $("#trades"), head = $("#tradesHead"), body = $("#tradesBody");
     let drag = null;
-    /* set explicit position so it stays put across the drag */
     const lock = () => {
       const r = win.getBoundingClientRect();
-      win.style.left = r.left + "px";
-      win.style.top = r.top + "px";
-      win.style.right = "auto";
-      win.style.bottom = "auto";
+      Object.assign(win.style, { left: r.left + "px", top: r.top + "px", right: "auto", bottom: "auto" });
     };
     head.addEventListener("pointerdown", (e) => {
       if (e.target.closest(".win")) return;
@@ -239,23 +210,11 @@
     head.addEventListener("pointerup", end);
     head.addEventListener("pointercancel", end);
 
-    /* minimize */
     $("#tradesMin").addEventListener("click", () => {
       const min = win.classList.toggle("min");
       body.style.maxHeight = min ? "0px" : body.scrollHeight + "px";
     });
     requestAnimationFrame(() => (body.style.maxHeight = body.scrollHeight + "px"));
-  }
-
-  /* ----- live ticking price flag (subtle ambience) ----- */
-  function initLiveTick(ctx) {
-    const flag = $("#priceFlag .tag");
-    let base = 44;
-    setInterval(() => {
-      const next = Math.max(40, Math.min(49, base + (Math.random() - 0.5) * 0.8));
-      base = next;
-      flag.textContent = next.toFixed(0) + "K";
-    }, 2600);
   }
 
   /* ----- CTA press feedback ----- */
@@ -268,7 +227,7 @@
     });
   }
 
-  /* ----- sidebar / dock active swap ----- */
+  /* ----- sidebar active swap ----- */
   function initNav() {
     $$(".side .ic:not(.bot)").forEach((b) =>
       b.addEventListener("click", () => { $$(".side .ic").forEach((x) => x.classList.remove("on")); b.classList.add("on"); })
@@ -277,10 +236,8 @@
 
   /* ----- boot ----- */
   function boot() {
-    const ctx = buildChart();
-    buildVolume();
+    initTradingView();
     buildFooter();
-    placePriceFlag(ctx);
     initTabs();
     initModes();
     initBuySell();
@@ -288,8 +245,6 @@
     initTrades();
     initCta();
     initNav();
-    initLiveTick(ctx);
-    window.addEventListener("resize", () => placePriceFlag(ctx));
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

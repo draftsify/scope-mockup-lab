@@ -25,11 +25,14 @@
   <main class="terminal">
     <div class="grain"></div>
 
-    <!-- ─── chart background ─── -->
-    <div class="bg-chart fadein"><svg id="chart" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-    <div class="bg-vol fadein"><svg id="vol" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    <!-- ─── live TradingView chart ─── -->
+    <div class="chart-stage fadein">
+      <div class="chart-skeleton" id="chartSkeleton" aria-hidden="true"></div>
+      <div class="tvchart" id="tvchart"></div>
+      <div class="chart-fade top" aria-hidden="true"></div>
+      <div class="chart-fade bottom" aria-hidden="true"></div>
+    </div>
     <div class="tv-mark fadein"><b>TV</b> 5m · QNT/SOL</div>
-    <div class="price-flag fadein" id="priceFlag"><span class="ln"></span><span class="tag">44K</span></div>
 
     <!-- ─── sidebar ─── -->
     <aside class="panel side anim" aria-label="Navigation">
