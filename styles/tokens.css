@@ -1,0 +1,72 @@
+/* ============================================================
+   QNT / Quantumium — Design tokens
+   Extracted from the Quantumium mockup. Everything that styles
+   the terminal references these variables; no stray hex values.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces ---- */
+  --bg-base:      #050607;   /* near-pure black canvas            */
+  --bg-elevated:  #0b0d0e;   /* panels & cards                    */
+  --bg-overlay:   #0f1213;   /* floating trades table             */
+  --bg-raise:     #14181a;   /* hovered cells / inputs            */
+
+  /* ---- Borders ---- */
+  --border-subtle:  #1a1d1f; /* separators                        */
+  --border-default: #232628; /* card borders                      */
+  --border-glow:    #2c3133; /* focus / hover border              */
+
+  /* ---- Text ---- */
+  --text-primary:   #e8eae9; /* off-white                         */
+  --text-secondary: #7a7f80; /* mid grey                          */
+  --text-muted:     #4a4e50; /* labels                            */
+  --text-faint:     #34383a; /* ghost text                        */
+
+  /* ---- Accent (mint) ---- */
+  --accent-mint:        #a8e6cf;
+  --accent-mint-strong: #7fd9b5;
+  --accent-mint-dim:    rgba(127, 217, 181, 0.14);
+  --accent-mint-glow:   rgba(127, 217, 181, 0.35);
+
+  /* ---- Market ---- */
+  --buy:  #7fd9b5;   /* mint-green candles / buys */
+  --sell: #e27d6e;   /* soft terracotta / sells   */
+  --buy-dim:  rgba(127, 217, 181, 0.16);
+  --sell-dim: rgba(226, 125, 110, 0.16);
+
+  /* ---- Typography ---- */
+  --font-ui:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono:  "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ---- Radii ---- */
+  --r-card:  14px;
+  --r-input: 11px;
+  --r-pill:  999px;
+  --r-chip:  8px;
+
+  /* ---- Spacing rhythm ---- */
+  --pad-card: 22px;
+  --gap-sec:  28px;
+
+  /* ---- Layout frame ---- */
+  --side: 60px;
+  --top:  60px;
+  --rail: 348px;
+  --foot: 46px;
+
+  /* ---- Motion ---- */
+  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --dur:       0.42s;
+  --dur-fast:  0.18s;
+
+  /* ---- Elevation ---- */
+  --shadow-pop:  0 24px 60px -20px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-default);
+  --shadow-dock: 0 18px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--border-subtle);
+  --shadow-cta:  0 10px 30px -8px var(--accent-mint-glow);
+
+  /* convenience */
+  --label: 700 10.5px/1 var(--font-ui);
+  --tracking-label: 0.14em;
+}
